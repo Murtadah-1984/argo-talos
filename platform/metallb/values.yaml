@@ -1,0 +1,11 @@
+# L2 only. Chart 0.16 enables the frr-k8s BGP backend unless this is turned off.
+frrk8s:
+  enabled: false
+speaker:
+  frr:
+    enabled: false
+controller:
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule

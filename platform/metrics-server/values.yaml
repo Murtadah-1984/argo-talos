@@ -1,0 +1,7 @@
+# Talos kubelets serve a certificate metrics-server does not trust by default.
+args:
+  - --kubelet-insecure-tls
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
