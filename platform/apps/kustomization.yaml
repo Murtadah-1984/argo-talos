@@ -10,3 +10,4 @@ resources:
   - ingress-nginx.yaml
   - sealed-secrets.yaml
   - dbs.yaml
+  - gitlab.yaml

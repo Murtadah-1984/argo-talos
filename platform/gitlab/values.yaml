@@ -36,43 +36,24 @@ global:
   # External PostgreSQL cluster.
   # Use a GitLab-compatible PostgreSQL version and a dedicated database/user.
   psql:
-    host: "72.62.152.181"
-    port: 7000
+    host: pg-rw.databases.svc.cluster.local   # direct to primary, not PgBouncer
+    port: 5432
     username: gitlab
-    database: gitlabhq_production
+    database: gitlabhq_production_db
     password:
-      secret: gitlab-postgresql
-      key: password
-    sslMode: require
-    main:
-      host: "72.62.152.181"
-      port: 7000
-      username: gitlab
-      database: gitlabhq_production
-      password:
-        secret: gitlab-postgresql
-        key: password
-      ssl: true
-    ci:
-      host: "72.62.152.181"
-      port: 7000
-      username: gitlab
-      database: gitlabhq_production_ci
-      password:
-        secret: gitlab-postgresql-ci
-        key: password
-      ssl: true
+      useSecret: true
+      secret: gitlab-secret
+      key: PG_PASSWORD
 
   # External Redis cluster.
   redis:
-    host: "72.62.152.181"
-    port: 6379
-    auth:
-      enabled: true
-      secret: gitlab-redis
-      key: password
-    sentinelAuth:
-      enabled: false
+    host: mymaster                     # the master NAME, not a hostname
+    sentinels:
+      - { host: redis-sentinel-1.databases.svc.cluster.local, port: 26379 }
+      - { host: redis-sentinel-2.databases.svc.cluster.local, port: 26379 }
+      - { host: redis-sentinel-3.databases.svc.cluster.local, port: 26379 }
+    auth:         { enabled: true, secret: gitlab-secret,          key: REDIS_PASSWORD }
+    sentinelAuth: { enabled: true, secret: gitlab-secret, key: SENTINEL_PASSWORD }
 
   # Keep the GitLab repository storage persistent.
   gitaly:
