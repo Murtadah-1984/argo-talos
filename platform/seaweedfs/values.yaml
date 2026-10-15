@@ -150,11 +150,9 @@ filer:
     grpc:
       enabled: false
 
+  # S3 runs as the dedicated Deployment below, not inside the filer pods.
   s3:
-    enabled: true
-    port: 8333
-    enableAuth: true
-    existingConfigSecret: seaweedfs-s3-config
+    enabled: false
 
 s3:
   enabled: true
@@ -164,6 +162,13 @@ s3:
   httpsPort: 0
   enableAuth: true
   existingConfigSecret: seaweedfs-s3-config
+
+  # Chart default is seaweedfs-filer-client. That Service is headless and does
+  # not publish unready addresses, so DNS returns NXDOMAIN until filers are
+  # Ready. seaweedfs-filer always resolves (publishNotReadyAddresses: true).
+  # Last -filer wins over the chart's baked-in flag.
+  extraArgs:
+    - "-filer=seaweedfs-filer.seaweedfs:8888"
 
   # Use path-style S3 URLs initially:
   # https://s3.arajeez-cloud.com/bucket-name
