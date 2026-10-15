@@ -10,7 +10,7 @@ metadata:
 spec:
   project: platform
   sources:
-    - repoURL: http://charts.gitlab.io
+    - repoURL: http://charts.gitlab.io/
       chart: gitlab
       targetRevision: 10.4.2
       helm:
