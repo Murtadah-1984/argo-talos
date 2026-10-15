@@ -174,12 +174,12 @@ s3:
   # https://s3.arajeez-cloud.com/bucket-name
   domainName: ""
 
-  # MetalLB assigns a LAN IP. Use http://<EXTERNAL-IP>:8333 from your PC.
-  # kubectl port-forward only binds 127.0.0.1 on the machine that runs it,
-  # not the Talos node address.
+  # From outside the cluster use any node IP and the nodePort, not 8333:
+  #   http://172.168.10.11:31311
   service:
     type: NodePort
-    nodePort: 30001
+    nodePorts:
+      http: 31311
 
   ingress:
     enabled: false
