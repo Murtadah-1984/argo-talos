@@ -1,0 +1,196 @@
+
+# values-seaweedfs-production.yaml
+# SeaweedFS Helm chart override for Argo CD
+# Public TLS termination is handled by external Caddy.
+
+global:
+  seaweedfs:
+    createClusterRole: true
+    serviceAccountName: seaweedfs
+    automountServiceAccountToken: false
+    imagePullPolicy: IfNotPresent
+    loggingLevel: 1
+
+    # Enable S3 authentication, but keep internal traffic private.
+    enableSecurity: false
+
+    # Keep signing-key material outside Git.
+    securityConfig:
+      jwtSigning:
+        volumeWrite: true
+        volumeRead: false
+        filerWrite: false
+        filerRead: false
+
+    monitoring:
+      enabled: true
+
+    enableReplication: true
+    replicationPlacement: "010"
+
+# Pin the Helm chart version in Argo CD and use its compatible
+# application image version. Do not use a floating "latest" tag.
+image:
+  registry: ""
+  repository: ""
+  tag: ""
+
+master:
+  enabled: true
+  replicas: 3
+  port: 9333
+  grpcPort: 19333
+  metricsPort: 9327
+  defaultReplication: "010"
+  volumeSizeLimitMB: 30000
+  resumeState: true
+
+  data:
+    type: persistentVolumeClaim
+    size: 10Gi
+    storageClass: ceph-rbd
+
+  logs:
+    type: emptyDir
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
+  ingress:
+    enabled: false
+
+  livenessProbe:
+    enabled: true
+
+  readinessProbe:
+    enabled: true
+
+volume:
+  enabled: true
+  replicas: 3
+  port: 8080
+  grpcPort: 18080
+  metricsPort: 9327
+  minFreeSpacePercent: 10
+  compactionMBps: "50"
+  readMode: proxy
+
+  # One persistent claim per volume-server replica.
+  # Increase capacity after measuring real usage.
+  dataDirs:
+    - name: data1
+      type: persistentVolumeClaim
+      size: 500Gi
+      storageClass: ceph-rbd
+      maxVolumes: 0
+
+  logs:
+    type: emptyDir
+
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+
+  livenessProbe:
+    enabled: true
+
+  readinessProbe:
+    enabled: true
+
+filer:
+  enabled: true
+  replicas: 2
+  port: 8888
+  grpcPort: 18888
+  metricsPort: 9327
+  defaultReplicaPlacement: "010"
+  disableDirListing: true
+  redirectOnRead: false
+  dirListLimit: 100000
+
+  # Persist filer metadata. Verify the chart's supported
+  # metadata-store configuration before enabling replicas.
+  data:
+    type: persistentVolumeClaim
+    size: 20Gi
+    storageClass: ceph-rbd
+
+  logs:
+    type: emptyDir
+
+  extraEnvironmentVars:
+    WEED_LEVELDB2_ENABLED: "true"
+    WEED_FILER_OPTIONS_RECURSIVE_DELETE: "false"
+    WEED_FILER_BUCKETS_FOLDER: "/buckets"
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+  ingress:
+    enabled: false
+
+  ingresses:
+    http:
+      enabled: false
+    grpc:
+      enabled: false
+
+  s3:
+    enabled: true
+    port: 8333
+    enableAuth: true
+    existingConfigSecret: seaweedfs-s3-config
+
+s3:
+  enabled: true
+  replicas: 2
+  bindAddress: 0.0.0.0
+  port: 8333
+  httpsPort: 0
+  enableAuth: true
+  existingConfigSecret: seaweedfs-s3-config
+
+  # Use path-style S3 URLs initially:
+  # https://s3.arajeez-cloud.com/bucket-name
+  domainName: ""
+
+  service:
+    type: ClusterIP
+
+  logs:
+    type: emptyDir
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+  ingress:
+    enabled: false
+
+# Keep optional interfaces disabled unless required.
+sftp:
+  enabled: false
+
+admin:
+  enabled: false
+
+cosi:
+  enabled: false

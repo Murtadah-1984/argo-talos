@@ -116,6 +116,7 @@ global:
   registry:
     enabled: true
     host: registry.arajeez-cloud.com
+    bucket: gitlab-registry
 
   # Avoid installing a second ingress controller or gateway.
   serviceAccount:
@@ -132,6 +133,25 @@ redis:
 
 minio:
   enabled: false
+
+# The registry does not use global.appConfig.object_store. Chart 10 fails
+# helm template unless registry.storage.secret is set.
+# Create the Secret before the registry pod starts. `config` is registry
+# storage YAML, not the Rails connection used by gitlab-object-storage:
+#   s3:
+#     bucket: gitlab-registry
+#     accesskey: ...
+#     secretkey: ...
+#     region: us-east-1
+#     regionendpoint: https://s3.example.com
+#     v4auth: true
+#     pathstyle: true
+registry:
+  storage:
+    secret: gitlab-registry-storage
+    key: config
+    redirect:
+      disable: true
 
 nginx-ingress:
   enabled: false
