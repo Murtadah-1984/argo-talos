@@ -9,17 +9,16 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: platform
-  sources:
-    - repoURL: oci://registry-1.docker.io/cloudpirates
-      chart: minio
-      targetRevision: 0.14.0
-      helm:
-        releaseName: minio
-        valueFiles:
-          - $values/platform/minio/values.yaml
-    - repoURL: https://github.com/Murtadah-1984/argo-talos.git
-      targetRevision: main
-      ref: values
+  # Chart is vendored under platform/minio/chart so Argo CD does not pull
+  # oci://registry-1.docker.io/cloudpirates (Docker Hub returns 401 anonymously).
+  source:
+    repoURL: https://github.com/Murtadah-1984/argo-talos.git
+    targetRevision: main
+    path: platform/minio/chart
+    helm:
+      releaseName: minio
+      valueFiles:
+        - ../values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: minio
