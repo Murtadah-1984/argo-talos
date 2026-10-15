@@ -17,11 +17,6 @@
 #  Sentinel hands clients the master as ANNOUNCE_IP:7001-7003, so pods must be
 #  able to reach that IP on ports 7001-7003 directly.
 # ─────────────────────────────────────────────────────────────────────────────
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: databases
----
 # ── Postgres primary (pg-ha HAProxy :5000) ──────────────────────────────────
 apiVersion: v1
 kind: Service
@@ -136,7 +131,7 @@ ports:
     port: 6379
     protocol: TCP
 endpoints:
-  - addresses: ["100.64.0.10"]
+  - addresses: ["72.62.152.181"]
 ---
 # ── Redis replicas (redis-ha HAProxy :6380) ─────────────────────────────────
 apiVersion: v1
@@ -165,7 +160,7 @@ ports:
     port: 6380
     protocol: TCP
 endpoints:
-  - addresses: ["100.64.0.10"]
+  - addresses: ["72.62.152.181"]
 ---
 # ── Redis Sentinel 1 (redis-ha :26379) ──
 apiVersion: v1
