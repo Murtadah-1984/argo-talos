@@ -22,8 +22,9 @@ global:
         filerWrite: false
         filerRead: false
 
+    # Requires Prometheus Operator CRDs (ServiceMonitor). Off until that stack is installed.
     monitoring:
-      enabled: true
+      enabled: false
 
     enableReplication: true
     replicationPlacement: "010"
