@@ -13,6 +13,7 @@ spec:
     - https://kubernetes-sigs.github.io/metrics-server/
     - https://github.com/rancher/local-path-provisioner.git
     - https://bitnami.github.io/sealed-secrets
+    - http://charts.gitlab.io/
   destinations:
     - server: https://kubernetes.default.svc
       namespace: "*"
