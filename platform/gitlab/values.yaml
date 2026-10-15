@@ -197,3 +197,8 @@ gitlab:
 
 shared-secrets:
   enabled: true
+
+# Argo CD maps Helm pre-upgrade → PreSync, so this Job runs on first install
+# (before secrets/DB exist) and fails the sync. Safe to disable under Argo CD.
+upgradeCheck:
+  enabled: false
