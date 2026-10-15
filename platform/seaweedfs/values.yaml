@@ -178,20 +178,8 @@ s3:
   # kubectl port-forward only binds 127.0.0.1 on the machine that runs it,
   # not the Talos node address.
   service:
-    type: LoadBalancer
-    # Optional: pin an IP from the MetalLB pool
-    # loadBalancerIP: 192.168.1.210
-
-  logs:
-    type: emptyDir
-
-  resources:
-    requests:
-      cpu: 500m
-      memory: 512Mi
-    limits:
-      cpu: "2"
-      memory: 2Gi
+    type: NodePort
+    nodePort: 30001
 
   ingress:
     enabled: false
