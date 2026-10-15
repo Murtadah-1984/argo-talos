@@ -14,7 +14,7 @@ spec:
     - https://github.com/rancher/local-path-provisioner.git
     - https://bitnami.github.io/sealed-secrets
     - http://charts.gitlab.io/
-    - https://seaweedfs.github.io/seaweedfs/helm
+    - oci://registry-1.docker.io/cloudpirates 
   destinations:
     - server: https://kubernetes.default.svc
       namespace: "*"

@@ -1,0 +1,212 @@
+
+## Arajeez MinIO — production-oriented single-instance configuration
+## Keep credentials in a Kubernetes Secret, never in this file.
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: "minio"
+namespaceOverride: "minio"
+
+commonLabels:
+  app.kubernetes.io/part-of: arajeez-platform
+  app.kubernetes.io/managed-by: argocd
+
+commonAnnotations: {}
+
+image:
+  registry: docker.io
+  repository: cloudpirates/image-minio
+  tag: "RELEASE.2025-10-15T17-29-55Z-hardened@sha256:8dc02a7e509336c8bbb67962086d691bdcde20a2c9327ed68e5081a681f6dbfc"
+  useCpuV1: false
+  tagCpuV1: "RELEASE.2025-10-15T17-29-55Z-cpuv1@sha256:e16e8408a0d04699057f4cc8d7e6770553734542aa55066a8fabc0e8adfae873"
+  imagePullPolicy: IfNotPresent
+  executable: minio
+
+auth:
+  rootUser: ""
+  rootPassword: ""
+  existingSecret: minio-root-credentials
+  existingSecretUserKey: user
+  existingSecretPasswordKey: password
+
+config:
+  region: us-east-1
+  browserEnabled: true
+  # Leave domain empty unless you intentionally configure wildcard DNS
+  # and virtual-host-style bucket access.
+  domain: ""
+  # Public S3 endpoint used by clients and the Console.
+  serverUrl: "https://s3.arajeez-cloud.com"
+  minioOpts: '--console-address ":9090"'
+  minioVolumes: "/mnt/data"
+  minioConfigEnvFile: ""
+  minioScannerSpeed: default
+  minioCompressionEnabled: ""
+  minioCompressionAllowEncryption: ""
+  minioCompressionExtensions: ""
+  minioCompressionMimeTypes: ""
+  extraEnvVars: []
+
+# Create private buckets only; assign application-specific permissions
+# separately using MinIO users and policies.
+defaultBuckets: "app-storage,backups,gitlab-artifacts,gitlab-lfs,gitlab-uploads"
+
+bucketInitJob:
+  ttlSecondsAfterFinished: 60
+  activeDeadlineSeconds: 300
+  completions: 1
+  parallelism: 1
+  backoffLimit: 3
+  restartPolicy: OnFailure
+  annotations: {}
+  podLabels: {}
+  podAnnotations: {}
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+replicaCount: 1
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1001
+  fsGroupChangePolicy: OnRootMismatch
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+priorityClassName: ""
+
+service:
+  type: ClusterIP
+  port: 9000
+  consolePort: 9090
+  annotations: {}
+  nodePorts:
+    api: ""
+    console: ""
+
+# Caddy terminates HTTPS. Do not create Kubernetes Ingress resources.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: s3.arajeez-cloud.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+gatewayAPI:
+  httpRoute:
+    enabled: false
+    annotations: {}
+    parentRefs:
+      - name: gateway
+        namespace: ""
+        sectionName: ""
+    hostnames:
+      - s3.arajeez-cloud.com
+    rules:
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /
+  consoleHttpRoute:
+    enabled: false
+    annotations: {}
+    parentRefs:
+      - name: gateway
+        namespace: ""
+        sectionName: ""
+    hostnames:
+      - minio.arajeez-cloud.com
+    rules:
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /
+
+consoleIngress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: minio.arajeez-cloud.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: "1"
+    memory: 2Gi
+  limits:
+    cpu: "4"
+    memory: 8Gi
+
+persistence:
+  enabled: true
+  # Set this to your actual StorageClass name if you don't use
+  # the cluster's default StorageClass.
+  storageClass: ceph-rbd
+  annotations: {}
+  size: 1Ti
+  accessModes:
+    - ReadWriteOnce
+  existingClaim: ""
+  mountPath: /mnt/data
+
+serviceAccount:
+  create: true
+  name: ""
+  automountServiceAccountToken: false
+  annotations: {}
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+extraObjects: []
