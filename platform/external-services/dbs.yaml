@@ -1,0 +1,290 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Expose the Docker-hosted pg-ha and redis-ha clusters inside Kubernetes
+#  as normal in-cluster Services (no proxies, no operators).
+#
+#  BEFORE APPLYING: replace every 72.62.152.181 with the IP of the Docker host
+#  running pg-ha / redis-ha (its LAN or Tailscale IP), and fill in passwords.
+#
+#  Apps then connect to:
+#    pg-rw.databases.svc.cluster.local:5432      → Postgres primary (read/write)
+#    pg-ro.databases.svc.cluster.local:5432      → Postgres replicas (read-only)
+#    pg-pooler.databases.svc.cluster.local:5432  → PgBouncer (db appdb / appdb_ro)
+#    redis.databases.svc.cluster.local:6379      → Redis master (read/write)
+#    redis-ro.databases.svc.cluster.local:6379   → Redis replicas (read-only)
+#    redis-sentinel-{1,2,3}.databases.svc.cluster.local:26379
+#                                                → Sentinels (master name: mymaster)
+#  Sentinel needs ANNOUNCE_IP set in redis-ha (see redis-ha compose header):
+#  Sentinel hands clients the master as ANNOUNCE_IP:7001-7003, so pods must be
+#  able to reach that IP on ports 7001-7003 directly.
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: databases
+---
+# ── Postgres primary (pg-ha HAProxy :5000) ──────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: pg-rw
+  namespace: databases
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5000
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: pg-rw-external
+  namespace: databases
+  labels:
+    kubernetes.io/service-name: pg-rw
+    endpointslice.kubernetes.io/managed-by: manual
+addressType: IPv4
+ports:
+  - name: postgres
+    port: 5000
+    protocol: TCP
+endpoints:
+  - addresses: ["72.62.152.181"]
+---
+# ── Postgres replicas (pg-ha HAProxy :5001) ─────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: pg-ro
+  namespace: databases
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5001
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: pg-ro-external
+  namespace: databases
+  labels:
+    kubernetes.io/service-name: pg-ro
+    endpointslice.kubernetes.io/managed-by: manual
+addressType: IPv4
+ports:
+  - name: postgres
+    port: 5001
+    protocol: TCP
+endpoints:
+  - addresses: ["72.62.152.181"]
+---
+# ── PgBouncer pooler (pg-ha :6432) ──────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: pg-pooler
+  namespace: databases
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 6432
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: pg-pooler-external
+  namespace: databases
+  labels:
+    kubernetes.io/service-name: pg-pooler
+    endpointslice.kubernetes.io/managed-by: manual
+addressType: IPv4
+ports:
+  - name: postgres
+    port: 6432
+    protocol: TCP
+endpoints:
+  - addresses: ["72.62.152.181"]
+---
+# ── Redis master (redis-ha HAProxy :6379) ───────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: databases
+spec:
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: redis-external
+  namespace: databases
+  labels:
+    kubernetes.io/service-name: redis
+    endpointslice.kubernetes.io/managed-by: manual
+addressType: IPv4
+ports:
+  - name: redis
+    port: 6379
+    protocol: TCP
+endpoints:
+  - addresses: ["100.64.0.10"]
+---
+# ── Redis replicas (redis-ha HAProxy :6380) ─────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-ro
+  namespace: databases
+spec:
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6380
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: redis-ro-external
+  namespace: databases
+  labels:
+    kubernetes.io/service-name: redis-ro
+    endpointslice.kubernetes.io/managed-by: manual
+addressType: IPv4
+ports:
+  - name: redis
+    port: 6380
+    protocol: TCP
+endpoints:
+  - addresses: ["100.64.0.10"]
+---
+# ── Redis Sentinel 1 (redis-ha :26379) ──
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel-1
+  namespace: databases
+spec:
+  ports:
+    - name: sentinel
+      port: 26379
+      targetPort: 26379
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: redis-sentinel-1-external
+  namespace: databases
+  labels:
+    kubernetes.io/service-name: redis-sentinel-1
+    endpointslice.kubernetes.io/managed-by: manual
+addressType: IPv4
+ports:
+  - name: sentinel
+    port: 26379
+    protocol: TCP
+endpoints:
+  - addresses: ["72.62.152.181"]
+---
+# ── Redis Sentinel 2 (redis-ha :26380) ──
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel-2
+  namespace: databases
+spec:
+  ports:
+    - name: sentinel
+      port: 26379
+      targetPort: 26380
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: redis-sentinel-2-external
+  namespace: databases
+  labels:
+    kubernetes.io/service-name: redis-sentinel-2
+    endpointslice.kubernetes.io/managed-by: manual
+addressType: IPv4
+ports:
+  - name: sentinel
+    port: 26380
+    protocol: TCP
+endpoints:
+  - addresses: ["72.62.152.181"]
+---
+# ── Redis Sentinel 3 (redis-ha :26381) ──
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel-3
+  namespace: databases
+spec:
+  ports:
+    - name: sentinel
+      port: 26379
+      targetPort: 26381
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: redis-sentinel-3-external
+  namespace: databases
+  labels:
+    kubernetes.io/service-name: redis-sentinel-3
+    endpointslice.kubernetes.io/managed-by: manual
+addressType: IPv4
+ports:
+  - name: sentinel
+    port: 26381
+    protocol: TCP
+endpoints:
+  - addresses: ["72.62.152.181"]
+---
+# ── Quick connectivity test: kubectl -n databases logs job/db-check ─────────
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-check
+  namespace: databases
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pg
+          image: postgres:17-alpine
+          envFrom: [{ secretRef: { name: db-credentials } }]
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "primary:";  psql "$DATABASE_URL" -tAc "select inet_server_addr(), pg_is_in_recovery()";
+              echo "replica:";  psql "postgresql://$PG_USER:$PG_PASSWORD@pg-ro.databases.svc.cluster.local:5432/$PG_DATABASE" -tAc "select inet_server_addr(), pg_is_in_recovery()";
+              echo "pgvector:"; psql "$DATABASE_URL" -tAc "select extversion from pg_extension where extname='vector'"
+        - name: redis
+          image: redis:8-alpine
+          envFrom: [{ secretRef: { name: db-credentials } }]
+          command: ["sh", "-c"]
+          args:
+            - |
+              redis-cli -u "$REDIS_URL" --no-auth-warning ping;
+              redis-cli -u "$REDIS_URL" --no-auth-warning info replication | head -3;
+              echo "sentinel says master is:";
+              redis-cli -h redis-sentinel-1.databases.svc.cluster.local -p 26379 -a "$REDIS_SENTINEL_PASSWORD" --no-auth-warning sentinel get-master-addr-by-name mymaster | paste -sd' ';
+              M=$(redis-cli -h redis-sentinel-2.databases.svc.cluster.local -p 26379 -a "$REDIS_SENTINEL_PASSWORD" --no-auth-warning sentinel get-master-addr-by-name mymaster | paste -sd' ');
+              echo "connecting to that address directly:"; redis-cli -h ${M% *} -p ${M#* } -a "$REDIS_PASSWORD" --no-auth-warning role | head -1

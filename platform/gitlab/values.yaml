@@ -1,0 +1,215 @@
+
+# GitLab Helm values.yaml
+# Target chart: official GitLab Helm chart
+# Application version: 19.4.2
+#
+# Create the referenced Kubernetes Secrets before deployment.
+# Never commit passwords, access keys, or GitLab secret material.
+
+global:
+  edition: ee
+  gitlabVersion: "19.4.2"
+  time_zone: Asia/Baghdad
+
+  hosts:
+    domain: arajeez-cloud.com
+    https: true
+    gitlab:
+      name: gitlab.arajeez-cloud.com
+      https: true
+    registry:
+      name: registry.arajeez-cloud.com
+      https: true
+    ssh: gitlab.arajeez-cloud.com
+
+  # TLS terminates at Caddy. GitLab receives HTTP internally.
+  ingress:
+    enabled: false
+    configureCertmanager: false
+
+  gatewayApi:
+    enabled: false
+    installEnvoy: false
+    configureEnvoy: false
+    configureCertmanager: false
+
+  # External PostgreSQL cluster.
+  # Use a GitLab-compatible PostgreSQL version and a dedicated database/user.
+  psql:
+    host: "72.62.152.181"
+    port: 7000
+    username: gitlab
+    database: gitlabhq_production
+    password:
+      secret: gitlab-postgresql
+      key: password
+    sslMode: require
+    main:
+      host: "72.62.152.181"
+      port: 7000
+      username: gitlab
+      database: gitlabhq_production
+      password:
+        secret: gitlab-postgresql
+        key: password
+      ssl: true
+    ci:
+      host: "72.62.152.181"
+      port: 7000
+      username: gitlab
+      database: gitlabhq_production_ci
+      password:
+        secret: gitlab-postgresql-ci
+        key: password
+      ssl: true
+
+  # External Redis cluster.
+  redis:
+    host: "72.62.152.181"
+    port: 6379
+    auth:
+      enabled: true
+      secret: gitlab-redis
+      key: password
+    sentinelAuth:
+      enabled: false
+
+  # Keep the GitLab repository storage persistent.
+  gitaly:
+    enabled: true
+    persistence:
+      enabled: true
+      storageClass: "ceph-rbd"
+      accessMode: ReadWriteOnce
+      size: 200Gi
+
+  # HTTPS is provided by Caddy, not by GitLab's internal services.
+  tls:
+    enabled: false
+
+  # External S3-compatible object storage.
+  # Create the referenced secret using GitLab's documented connection format.
+  appConfig:
+    object_store:
+      enabled: true
+      proxy_download: true
+      connection:
+        secret: gitlab-object-storage
+        key: connection
+
+    lfs:
+      enabled: true
+      bucket: gitlab-lfs
+
+    artifacts:
+      enabled: true
+      bucket: gitlab-artifacts
+
+    uploads:
+      enabled: true
+      bucket: gitlab-uploads
+
+    packages:
+      enabled: true
+      bucket: gitlab-packages
+
+    externalDiffs:
+      enabled: false
+
+    terraformState:
+      enabled: true
+      bucket: gitlab-terraform-state
+
+    ciSecureFiles:
+      enabled: true
+      bucket: gitlab-ci-secure-files
+
+    dependencyProxy:
+      enabled: true
+      bucket: gitlab-dependency-proxy
+
+    backups:
+      bucket: gitlab-backups
+      tmpBucket: gitlab-backup-tmp
+
+  registry:
+    enabled: true
+    host: registry.arajeez-cloud.com
+
+  # Avoid installing a second ingress controller or gateway.
+  serviceAccount:
+    enabled: true
+    create: true
+    automountServiceAccountToken: false
+
+# Do not install chart-managed infrastructure that you already operate.
+postgresql:
+  install: false
+
+redis:
+  install: false
+
+minio:
+  enabled: false
+
+nginx-ingress:
+  enabled: false
+
+nginx-ingress-geo:
+  enabled: false
+
+haproxy:
+  install: false
+
+traefik:
+  install: false
+
+installCertmanager: false
+certmanager:
+  installCRDs: false
+
+prometheus:
+  install: false
+
+# Use a separately managed GitLab Runner for isolated CI workloads.
+gitlab-runner:
+  install: false
+
+# Start with a single webservice replica; scale only after validating
+# capacity, storage, and application behavior.
+gitlab:
+  webservice:
+    replicaCount: 1
+    minReplicas: 1
+    maxReplicas: 3
+    resources:
+      requests:
+        cpu: "1"
+        memory: 2Gi
+      limits:
+        memory: 4Gi
+
+  sidekiq:
+    replicas: 1
+    resources:
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+      limits:
+        memory: 2Gi
+
+  gitaly:
+    persistence:
+      enabled: true
+      storageClass: "ceph-rbd"
+      accessMode: ReadWriteOnce
+      size: 200Gi
+
+  toolbox:
+    replicas: 1
+
+# Keep automatic shared-secret generation enabled for initial provisioning.
+# For mature production, manage the generated secrets and their backups
+# through your established secret-management process.
+shared-secrets:
+  enabled: true

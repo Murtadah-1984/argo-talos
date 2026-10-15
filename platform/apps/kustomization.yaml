@@ -9,3 +9,4 @@ resources:
   - metallb-config.yaml
   - ingress-nginx.yaml
   - sealed-secrets.yaml
+  - dbs.yaml
