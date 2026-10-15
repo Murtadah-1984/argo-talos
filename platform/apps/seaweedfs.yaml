@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: seaweedfs
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  sources:
+    - repoURL: https://seaweedfs.github.io/seaweedfs/helm
+      chart: seaweedfs
+      targetRevision: 4.48.0
+      helm:
+        releaseName: seaweedfs
+        valueFiles:
+          - $values/platform/seaweedfs/values.yaml
+    - repoURL: https://github.com/Murtadah-1984/argo-talos.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: seaweedfs
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
