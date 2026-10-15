@@ -52,7 +52,8 @@ config:
 
 # Create private buckets only; assign application-specific permissions
 # separately using MinIO users and policies.
-defaultBuckets: "app-storage,backups,gitlab-artifacts,gitlab-lfs,gitlab-uploads"
+# Buckets GitLab expects (Rails + registry + backups).
+defaultBuckets: "gitlab-artifacts,gitlab-lfs,gitlab-uploads,gitlab-packages,gitlab-terraform-state,gitlab-ci-secure-files,gitlab-dependency-proxy,gitlab-backups,gitlab-backup-tmp,gitlab-registry,app-storage,backups"
 
 bucketInitJob:
   ttlSecondsAfterFinished: 60

@@ -1,0 +1,199 @@
+# GitLab Helm values — chart 10.4.2 / GitLab 19.4.2
+# Object storage: external MinIO at minio.minio.svc.cluster.local:9000
+#
+# Create these Secrets in namespace gitlab before sync (do not commit real keys):
+#   gitlab-object-storage        key: connection
+#   gitlab-registry-storage      key: config
+#   gitlab-object-storage-s3cmd  key: config
+# See platform/gitlab/object-storage/ for examples.
+
+global:
+  edition: ee
+  gitlabVersion: "19.4.2"
+  time_zone: Asia/Baghdad
+
+  hosts:
+    domain: arajeez-cloud.com
+    https: true
+    gitlab:
+      name: gitlab.arajeez-cloud.com
+      https: true
+    registry:
+      name: registry.arajeez-cloud.com
+      https: true
+    ssh: gitlab.arajeez-cloud.com
+
+  # TLS terminates at Caddy. GitLab receives HTTP internally.
+  ingress:
+    enabled: false
+    configureCertmanager: false
+
+  gatewayApi:
+    enabled: false
+    installEnvoy: false
+    configureEnvoy: false
+    configureCertmanager: false
+
+  psql:
+    host: pg-rw.databases.svc.cluster.local
+    port: 5432
+    username: gitlab
+    database: gitlabhq_production_db
+    password:
+      useSecret: true
+      secret: gitlab-secret
+      key: PG_PASSWORD
+
+  redis:
+    host: mymaster
+    sentinels:
+      - { host: redis-sentinel-1.databases.svc.cluster.local, port: 26379 }
+      - { host: redis-sentinel-2.databases.svc.cluster.local, port: 26379 }
+      - { host: redis-sentinel-3.databases.svc.cluster.local, port: 26379 }
+    auth: { enabled: true, secret: gitlab-secret, key: REDIS_PASSWORD }
+    sentinelAuth: { enabled: true, secret: gitlab-secret, key: SENTINEL_PASSWORD }
+
+  gitaly:
+    enabled: true
+    persistence:
+      enabled: true
+      storageClass: "ceph-rbd"
+      accessMode: ReadWriteOnce
+      size: 200Gi
+
+  tls:
+    enabled: false
+
+  # Consolidated Rails object storage → MinIO
+  appConfig:
+    object_store:
+      enabled: true
+      proxy_download: true
+      connection:
+        secret: gitlab-object-storage
+        key: connection
+
+    lfs:
+      enabled: true
+      bucket: gitlab-lfs
+
+    artifacts:
+      enabled: true
+      bucket: gitlab-artifacts
+
+    uploads:
+      enabled: true
+      bucket: gitlab-uploads
+
+    packages:
+      enabled: true
+      bucket: gitlab-packages
+
+    externalDiffs:
+      enabled: false
+
+    terraformState:
+      enabled: true
+      bucket: gitlab-terraform-state
+
+    ciSecureFiles:
+      enabled: true
+      bucket: gitlab-ci-secure-files
+
+    dependencyProxy:
+      enabled: true
+      bucket: gitlab-dependency-proxy
+
+    backups:
+      bucket: gitlab-backups
+      tmpBucket: gitlab-backup-tmp
+
+  registry:
+    enabled: true
+    host: registry.arajeez-cloud.com
+    bucket: gitlab-registry
+
+  serviceAccount:
+    enabled: true
+    create: true
+    automountServiceAccountToken: false
+
+postgresql:
+  install: false
+
+redis:
+  install: false
+
+# Chart 10 removed bundled MinIO. Use the platform MinIO Application instead.
+minio:
+  enabled: false
+
+# Registry storage is separate from Rails object_store (chart 10 requirement).
+registry:
+  storage:
+    secret: gitlab-registry-storage
+    key: config
+    redirect:
+      disable: true
+
+nginx-ingress:
+  enabled: false
+
+nginx-ingress-geo:
+  enabled: false
+
+haproxy:
+  install: false
+
+traefik:
+  install: false
+
+installCertmanager: false
+certmanager:
+  installCRDs: false
+
+prometheus:
+  install: false
+
+gitlab-runner:
+  install: false
+
+gitlab:
+  webservice:
+    replicaCount: 1
+    minReplicas: 1
+    maxReplicas: 3
+    resources:
+      requests:
+        cpu: "1"
+        memory: 2Gi
+      limits:
+        memory: 4Gi
+
+  sidekiq:
+    replicas: 1
+    resources:
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+      limits:
+        memory: 2Gi
+
+  gitaly:
+    persistence:
+      enabled: true
+      storageClass: "ceph-rbd"
+      accessMode: ReadWriteOnce
+      size: 200Gi
+
+  toolbox:
+    replicas: 1
+    backups:
+      objectStorage:
+        backend: s3
+        config:
+          secret: gitlab-object-storage-s3cmd
+          key: config
+
+shared-secrets:
+  enabled: true
