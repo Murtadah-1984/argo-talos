@@ -136,10 +136,7 @@ minio:
 # Registry storage is separate from Rails object_store (chart 10 requirement).
 registry:
   service:
-    type: LoadBalancer
-    # Only Caddy / LAN may hit the LB; TLS stays on the Caddy host.
-    loadBalancerSourceRanges:
-      - 172.16.10.0/24
+    type: NodePort
   storage:
     secret: gitlab-registry-storage
     key: config
@@ -180,15 +177,10 @@ gitlab:
       limits:
         memory: 4Gi
     service:
-      type: LoadBalancer
-      # Chart requires this when type is LoadBalancer (metrics ports are exposed).
-      loadBalancerSourceRanges:
-        - 172.16.10.0/24
+      type: NodePort
   gitlab-shell:
     service:
-      type: LoadBalancer
-      loadBalancerSourceRanges:
-        - 172.16.10.0/24
+      type: NodePort
 
 
 
