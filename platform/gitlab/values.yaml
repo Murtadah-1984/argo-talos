@@ -139,7 +139,7 @@ registry:
     type: LoadBalancer
     # Only Caddy / LAN may hit the LB; TLS stays on the Caddy host.
     loadBalancerSourceRanges:
-      - 192.168.1.0/24
+      - 172.16.10.0/24
   storage:
     secret: gitlab-registry-storage
     key: config
@@ -183,12 +183,12 @@ gitlab:
       type: LoadBalancer
       # Chart requires this when type is LoadBalancer (metrics ports are exposed).
       loadBalancerSourceRanges:
-        - 192.168.1.0/24
+        - 172.16.10.0/24
   gitlab-shell:
     service:
       type: LoadBalancer
       loadBalancerSourceRanges:
-        - 192.168.1.0/24
+        - 172.16.10.0/24
 
 
 
