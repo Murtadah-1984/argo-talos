@@ -37,7 +37,7 @@ global:
   psql:
     host: pg-rw.databases.svc.cluster.local
     port: 5432
-    username: gitlab
+    username: gitlabhq_production
     database: gitlabhq_production_db
     password:
       useSecret: true
