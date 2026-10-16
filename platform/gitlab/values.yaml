@@ -180,9 +180,9 @@ gitlab:
     resources:
       requests:
         cpu: "500m"
-        memory: 1Gi
+        memory: 4Gi
       limits:
-        memory: 2Gi
+        memory: 8Gi
 
   gitaly:
     persistence:
