@@ -43,6 +43,11 @@ global:
       useSecret: true
       secret: gitlab-secret
       key: PG_PASSWORD
+    main:
+      host: pg-rw.databases.svc.cluster.local
+    ci:
+      host: pg-rw.databases.svc.cluster.local
+
 
   redis:
     host: mymaster
