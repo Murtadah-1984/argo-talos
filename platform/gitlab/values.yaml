@@ -135,6 +135,8 @@ minio:
 
 # Registry storage is separate from Rails object_store (chart 10 requirement).
 registry:
+  service:
+    type: LoadBalancer
   storage:
     secret: gitlab-registry-storage
     key: config
@@ -174,6 +176,13 @@ gitlab:
         memory: 2Gi
       limits:
         memory: 4Gi
+    service:
+      type: LoadBalancer
+  gitlab-shell:
+    service:
+      type: LoadBalancer
+
+
 
   sidekiq:
     replicas: 1
