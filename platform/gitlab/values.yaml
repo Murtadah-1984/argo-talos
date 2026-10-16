@@ -183,6 +183,11 @@ gitlab:
         memory: 4Gi
       limits:
         memory: 8Gi
+    livenessProbe:
+      initialDelaySeconds: 300
+      periodSeconds: 60
+      timeoutSeconds: 30
+      failureThreshold: 3
 
   gitaly:
     persistence:
