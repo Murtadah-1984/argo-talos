@@ -9,20 +9,10 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: platform
-  sources:
-    - repoURL: https://harish2k01.github.io/helm-charts
-      chart: tailscale
-      targetRevision: 0.1.2
-      helm:
-        releaseName: tailscale
-        valueFiles:
-          - $values/platform/tailscale/values.yaml
-    - repoURL: https://github.com/Murtadah-1984/argo-talos.git
-      targetRevision: main
-      path: platform/tailscale
-    - repoURL: https://github.com/Murtadah-1984/argo-talos.git
-      targetRevision: main
-      ref: values   # <-- Make sure this doesn't contain a slash like 'platform/tailscale'
+  source:
+    repoURL: https://github.com/Murtadah-1984/argo-talos.git
+    targetRevision: main
+    path: platform/tailscale
   destination:
     server: https://kubernetes.default.svc
     namespace: tailscale
