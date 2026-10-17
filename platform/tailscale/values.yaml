@@ -19,6 +19,8 @@ tailscale:
   advertiseExitNode: true
   routes:
     - 192.172.0.0/24
+    - 10.244.0.0/16
+    - 10.96.0.0/12
 
 persistence:
   enabled: true
