@@ -22,7 +22,7 @@ spec:
       ref: values
   destination:
     server: https://kubernetes.default.svc
-     namespace: tailscale
+    namespace: tailscale
   syncPolicy:
     automated:
       prune: true
