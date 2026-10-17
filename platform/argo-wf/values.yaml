@@ -185,8 +185,9 @@ controller:
       host: pg-rw.databases.svc.cluster.local
       port: 5432
       database: argo-wf-db
-      
-      tableName: argo_archived_workflows
+      # Offload table only. Archive tables (argo_archived_workflows*) are fixed by Argo.
+      # Using argo_archived_workflows here collides with archive migrations (42P07).
+      tableName: argo_workflows
       userNameSecret:
         name: argo-workflow
         key: username
