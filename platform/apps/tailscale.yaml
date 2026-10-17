@@ -22,7 +22,7 @@ spec:
       path: platform/tailscale
     - repoURL: https://github.com/Murtadah-1984/argo-talos.git
       targetRevision: main
-      ref: values
+      ref: values   # <-- Make sure this doesn't contain a slash like 'platform/tailscale'
   destination:
     server: https://kubernetes.default.svc
     namespace: tailscale
