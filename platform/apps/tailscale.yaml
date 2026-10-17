@@ -26,7 +26,7 @@ spec:
   ignoreDifferences:
     - group: apps
       kind: StatefulSet
-      name: gitlab-gitaly
+      name: tailscale
       jqPathExpressions:
         - .spec.volumeClaimTemplates[]?.apiVersion
         - .spec.volumeClaimTemplates[]?.kind
