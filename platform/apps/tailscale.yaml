@@ -19,6 +19,9 @@ spec:
           - $values/platform/tailscale/values.yaml
     - repoURL: https://github.com/Murtadah-1984/argo-talos.git
       targetRevision: main
+      ref: platform/tailscale
+    - repoURL: https://github.com/Murtadah-1984/argo-talos.git
+      targetRevision: main
       ref: values
   destination:
     server: https://kubernetes.default.svc
