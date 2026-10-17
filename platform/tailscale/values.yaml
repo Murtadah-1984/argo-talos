@@ -17,6 +17,7 @@ tailscale:
   hostnamePrefix: "k8s-talos-"
   localAddrPort: "[::]:9002"
   advertiseExitNode: true
+  acceptDns: true
   routes:
     - 192.172.0.0/24
     - 10.244.0.0/16

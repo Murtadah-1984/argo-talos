@@ -20,10 +20,16 @@ spec:
     - repoURL: https://github.com/Murtadah-1984/argo-talos.git
       targetRevision: main
       ref: values
-
   destination:
     server: https://kubernetes.default.svc
     namespace: tailscale
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: gitlab-gitaly
+      jqPathExpressions:
+        - .spec.volumeClaimTemplates[]?.apiVersion
+        - .spec.volumeClaimTemplates[]?.kind
   syncPolicy:
     automated:
       prune: true
