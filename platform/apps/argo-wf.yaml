@@ -3,28 +3,33 @@ kind: Application
 metadata:
   name: argo-workflows
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default
+  project: platform
   sources:
-    - repoURL: "https://argoproj.github.io/argo-helm"
+    - repoURL: https://argoproj.github.io/argo-helm
       chart: argo-workflows
-      targetRevision: "2.0.13"
+      targetRevision: 2.0.13
       helm:
+        releaseName: argo-workflows
         valueFiles:
           - $values/platform/argo-wf/values.yaml
-    - repoURL: https://github.com/Murtadah-1984/k8sgitops.git
-      path: platform/argo-wf
+    - repoURL: https://github.com/Murtadah-1984/argo-talos.git
       targetRevision: main
+      path: platform/argo-wf
     - repoURL: https://github.com/Murtadah-1984/argo-talos.git
       targetRevision: main
       ref: values
   destination:
-    namespace: argo-wf
     server: https://kubernetes.default.svc
+    namespace: argo-wf
   syncPolicy:
     automated:
-      selfHeal: true
       prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
