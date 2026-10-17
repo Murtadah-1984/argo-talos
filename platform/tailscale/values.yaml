@@ -1,6 +1,11 @@
 
 replicaCount: 1
 
+image:
+  repository: tailscale/tailscale
+  tag: "v1.104.1"
+  pullPolicy: IfNotPresent
+
 authKey:
   existingSecret: "tailscale-secret"
   existingSecretKey: TS_AUTHKEY
@@ -9,7 +14,7 @@ authKey:
 tailscale:
   hostname: tailscale-router
   hostnameFromPodName: true
-  hostnamePrefix: "k8s-talos"
+  hostnamePrefix: "k8s-talos-"
   localAddrPort: "[::]:9002"
   advertiseExitNode: true
   routes:
