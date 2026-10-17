@@ -1,5 +1,6 @@
 # Pod security labels match what each component needs on Talos.
-# privileged: MetalLB speaker (raw sockets) and local-path helper pods (hostPath).
+# privileged: MetalLB speaker (raw sockets), local-path helper pods (hostPath),
+# and Tailscale (NET_ADMIN/NET_RAW, /dev/net/tun, privileged forwarding).
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -53,3 +54,12 @@ metadata:
     pod-security.kubernetes.io/enforce: baseline
     pod-security.kubernetes.io/audit: baseline
     pod-security.kubernetes.io/warn: baseline
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tailscale
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
