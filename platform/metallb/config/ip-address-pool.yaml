@@ -8,7 +8,7 @@ metadata:
 spec:
   autoAssign: true
   addresses:
-    - 192.172.0.0/24
+    - 192.172.0.10-192.172.0.200
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
