@@ -1,0 +1,121 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: artifacthub-helm-poller
+  namespace: argo
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+
+  entrypoint: poll        # 👈 REQUIRED HERE (OLD + NEW VERSIONS)
+
+  serviceAccountName: image-factory
+
+  arguments:
+    parameters:
+      - name: repoUrl
+        value: https://github.com/Murtadah-1984/k8sgitops
+      - name: repoBranch
+        value: main
+      - name: appFile
+        value: clusters/prod/infra/monitoring.yaml
+      - name: artifactHubRepo
+        value: prometheus-community
+      - name: artifactHubChart
+        value: kube-prometheus-stack
+      - name: githubRepo
+        value: <ORG>/<REPO>
+
+  templates:
+
+    - name: poll
+      steps:
+        - - name: get-latest-version
+            template: artifacthub-latest
+        - - name: get-current-version
+            template: git-current-version
+        - - name: compare-and-pr
+            template: compare-and-pr
+            arguments:
+              parameters:
+                - name: latest
+                  value: "{{steps.get-latest-version.outputs.parameters.version}}"
+                - name: current
+                  value: "{{steps.get-current-version.outputs.parameters.version}}"
+
+    - name: artifacthub-latest
+      container:
+        image: curlimages/curl:8.6.0
+        command: [sh, -c]
+        args:
+          - |
+            set -e
+            apk add --no-cache jq
+            curl -sf \
+              https://artifacthub.io/api/v1/packages/helm/{{workflow.parameters.artifactHubRepo}}/{{workflow.parameters.artifactHubChart}} \
+              | jq -r '.version' > /tmp/version.txt
+      outputs:
+        parameters:
+          - name: version
+            valueFrom:
+              path: /tmp/version.txt
+
+    - name: git-current-version
+      container:
+        image: alpine/git:2.45.2
+        command: [sh, -c]
+        args:
+          - |
+            set -e
+            apk add --no-cache yq
+            git clone --depth 1 --branch {{workflow.parameters.repoBranch}} {{workflow.parameters.repoUrl}} repo
+            cd repo
+            yq '.spec.source.targetRevision' {{workflow.parameters.appFile}} > /tmp/version.txt
+      outputs:
+        parameters:
+          - name: version
+            valueFrom:
+              path: /tmp/version.txt
+
+    - name: compare-and-pr
+      inputs:
+        parameters:
+          - name: latest
+          - name: current
+      container:
+        image: ghcr.io/cli/cli:2.57.0
+        env:
+          - name: GH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: github-token
+                key: token
+        command: [sh, -c]
+        args:
+          - |
+            set -e
+
+            if [ "{{inputs.parameters.latest}}" = "{{inputs.parameters.current}}" ]; then
+              echo "No update needed"
+              exit 0
+            fi
+
+            apk add --no-cache git yq
+
+            git clone --branch {{workflow.parameters.repoBranch}} {{workflow.parameters.repoUrl}} repo
+            cd repo
+
+            BRANCH="artifacthub/{{workflow.parameters.artifactHubChart}}/{{inputs.parameters.latest}}"
+            git checkout -b "$BRANCH"
+
+            yq -i '.spec.source.targetRevision = "{{inputs.parameters.latest}}"' {{workflow.parameters.appFile}}
+
+            git commit -am "chore(platform): bump {{workflow.parameters.artifactHubChart}} to {{inputs.parameters.latest}}"
+            git push origin "$BRANCH"
+
+            gh pr create \
+              --repo {{workflow.parameters.githubRepo}} \
+              --base {{workflow.parameters.repoBranch}} \
+              --head "$BRANCH" \
+              --title "chore(platform): {{workflow.parameters.artifactHubChart}} {{inputs.parameters.latest}}" \
+              --body "Automated Helm chart update detected via Artifact Hub."

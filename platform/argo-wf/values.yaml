@@ -1,0 +1,326 @@
+# =========================
+# GLOBAL & CRDs
+# =========================
+images:
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+crds:
+  install: true
+  keep: true
+  full: false
+  annotations:
+    app.kubernetes.io/part-of: argo-platform
+
+createAggregateRoles: true
+
+singleNamespace: false
+
+# =========================
+# WORKFLOW EXECUTION DEFAULTS
+# =========================
+# These protect your cluster from runaway workflows
+workflow:
+  serviceAccount:
+    create: false
+    name: argo-workflow
+
+  rbac:
+    create: true
+    agentPermissions: false
+    artifactGC: false
+    rules: []
+
+# =========================
+# WORKFLOW CONTROLLER (Core Brain)
+# =========================
+controller:
+  name: workflow-controller
+  replicas: 2
+  revisionHistoryLimit: 5
+
+  # Rate limiting to protect cluster
+  parallelism: 50
+  resourceRateLimit:
+    limit: 20
+    burst: 5
+  namespaceParallelism: 20
+
+  # Worker pool sizing
+  workflowWorkers: 32
+  workflowTTLWorkers: 4
+  podCleanupWorkers: 4
+  cronWorkflowWorkers: 8
+
+  # =========================
+  # SCHEDULING & HA
+  # =========================
+  nodeSelector:
+    kubernetes.io/os: linux
+
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: workflow-controller
+
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: workflow-controller
+
+  # =========================
+  # SECURITY (PSA / Kyverno Friendly)
+  # =========================
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  securityContext:
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+
+  # =========================
+  # HEALTH PROBES
+  # =========================
+  livenessProbe:
+    httpGet:
+      port: 6060
+      path: /healthz
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      port: 6060
+      path: /healthz
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # =========================
+  # RESOURCES
+  # Based on actual usage: ~1-2m CPU, ~14-26Mi memory per controller
+  # =========================
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # =========================
+  # METRICS + PROMETHEUS
+  # =========================
+  metricsConfig:
+    enabled: true
+    port: 9090
+    servicePort: 8080
+    path: /metrics
+    interval: 30s
+
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    additionalLabels:
+      release: kps
+
+  # =========================
+  # WORKFLOW RETENTION (Critical - Prevents etcd from dying)
+  # =========================
+  workflowDefaults:
+    spec:
+      ttlStrategy:
+        secondsAfterCompletion: 86400
+        secondsAfterSuccess: 86400
+        secondsAfterFailure: 172800
+
+  # =========================
+  # EVENTS (Enable Carefully - Only if you have strong etcd + monitoring)
+  # =========================
+  nodeEvents:
+    enabled: false
+
+  workflowEvents:
+    enabled: false
+
+  # =========================
+  # POD DISRUPTION BUDGET
+  # =========================
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  # =========================
+  # PERSISTENCE (OPTIONAL BUT RECOMMENDED)
+  # =========================
+  # Strongly recommended for large clusters
+  # Use PostgreSQL (CNPG) for archive
+  persistence:
+    archive: true
+    nodeStatusOffLoad: true
+    postgresql:
+      host: pg-rw.databases.svc.cluster.local
+      port: 5432
+      database: argo-wf-db
+      
+      tableName: argo_archived_workflows
+      userNameSecret:
+        name: argo-workflow
+        key: username
+      passwordSecret:
+        name: argo-workflow
+        key: password
+
+
+# =========================
+# EXECUTOR (Workflow Pods)
+# =========================
+executor:
+  image:
+    registry: quay.io
+    repository: argoproj/argoexec
+
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+
+# =========================
+# MAIN CONTAINER DEFAULTS (Workloads)
+# =========================
+mainContainer:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1
+      memory: 512Mi
+
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+
+# =========================
+# ARGO SERVER (UI + API)
+# =========================
+server:
+  enabled: true
+  replicas: 2
+
+  serviceType: ClusterIP
+
+  authModes:
+    - server
+
+  secure: true
+
+  # =========================
+  # SERVER SECURITY
+  # =========================
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+
+  # =========================
+  # SERVER RESOURCES
+  # =========================
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # =========================
+  # PDB + HA
+  # =========================
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  # =========================
+  # SCHEDULING
+  # =========================
+  nodeSelector:
+    kubernetes.io/os: linux
+
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: argo-server
+
+  # =========================
+  # INGRESS (DISABLED BY DEFAULT)
+  # =========================
+  # Expose via VPN, Cloudflare Tunnel, or Auth proxy (OAuth2-Proxy)
+  ingress:
+    enabled: false
+
+# =========================
+# ARTIFACT REPOSITORY (REQUIRED IN PROD)
+# =========================
+# Example: S3 / MinIO / Ceph RGW
+# Configure when object storage is ready
+artifactRepository:
+  archiveLogs: false
+  # s3:
+  #   endpoint: minio.minio.svc.cluster.local:9000
+  #   bucket: argo-artifacts
+  #   insecure: false
+  #   accessKeySecret:
+  #     name: argo-artifacts
+  #     key: accesskey
+  #   secretKeySecret:
+  #     name: argo-artifacts
+  #     key: secretkey

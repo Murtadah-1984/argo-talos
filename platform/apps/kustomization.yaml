@@ -12,3 +12,4 @@ resources:
   - dbs.yaml
   - minio.yaml
   - tailscale.yaml
+  - argo-wf.yaml

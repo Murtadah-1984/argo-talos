@@ -15,6 +15,7 @@ spec:
     - https://bitnami.github.io/sealed-secrets
     - http://charts.gitlab.io/
     - https://harish2k01.github.io/helm-charts
+    - https://argoproj.github.io/argo-helm
   destinations:
     - server: https://kubernetes.default.svc
       namespace: "*"
