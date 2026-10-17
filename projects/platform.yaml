@@ -14,6 +14,7 @@ spec:
     - https://github.com/rancher/local-path-provisioner.git
     - https://bitnami.github.io/sealed-secrets
     - http://charts.gitlab.io/
+    - https://harish2k01.github.io/helm-charts
   destinations:
     - server: https://kubernetes.default.svc
       namespace: "*"
