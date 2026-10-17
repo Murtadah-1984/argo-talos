@@ -239,7 +239,7 @@ server:
   enabled: true
   replicas: 2
 
-  serviceType: LoadBalancer
+  serviceType: NodePort
 
   authModes:
     - server
