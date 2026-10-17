@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: CronWorkflow
 metadata:
   name: artifacthub-helm-poller
-  namespace: argo
+  namespace: argo-wf
 spec:
   schedule: "0 */6 * * *"
   concurrencyPolicy: Forbid
