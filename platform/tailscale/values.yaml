@@ -1,0 +1,33 @@
+
+replicaCount: 1
+
+authKey:
+  existingSecret: "tailscale-secret"
+  existingSecretKey: TS_AUTHKEY
+  create: false
+
+tailscale:
+  hostname: tailscale-router
+  hostnameFromPodName: true
+  hostnamePrefix: "k8s-talos"
+  localAddrPort: "[::]:9002"
+  advertiseExitNode: true
+  routes:
+    - 192.172.0.0/24
+
+persistence:
+  enabled: true
+  mountPath: /var/lib/tailscale
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+  storageClassName: "ceph-rbd"
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 9002
+  targetPort: 9002
+  portName: http
+
+
